@@ -173,9 +173,17 @@ class PGPolicy(BasePolicy):
         """
         # TODO: rename? It's not really logits and there are particular
         #  assumptions about the order of the output and on distribution type
-        logits, hidden = self.actor(batch.obs, state=state, info=batch.info)
+        # checks for nested observation created by MultiAgentPolicyManager
+        if hasattr(batch.obs, "obs"):
+            logits, hidden = self.actor(batch.obs.obs, state=state, info=batch.info)
+        else:
+            logits, hidden = self.actor(batch.obs, state=state, info=batch.info)
         if isinstance(logits, tuple):
             dist = self.dist_fn(*logits)
+        elif hasattr(
+            batch.obs, "mask"
+        ):  # checks for nested mask created by MultiAgentPolicyManager
+            dist = self.dist_fn(logits, batch.obs.mask)
         else:
             dist = self.dist_fn(logits)
 
